@@ -169,3 +169,73 @@ exports.getPassQr = async (req, res) => {
   }
 };
 
+// GET /api/passes/live
+exports.getLiveVisitors = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Only those who are inside
+    const activePasses = await Pass.find({
+      status: 'ACTIVE'
+    }).lean();
+
+    // Aggregate per building with status buckets
+    const byBuilding = {};
+
+    activePasses.forEach(pass => {
+      const building = pass.building || 'Unknown';
+      if (!byBuilding[building]) {
+        byBuilding[building] = {
+          building,
+          total: 0,
+          onTime: 0,
+          approachingExit: 0,
+          overstay: 0,
+          visitors: []
+        };
+      }
+
+      byBuilding[building].total += 1;
+
+      // Determine category
+      let category = 'onTime';
+
+      // You may have validTill OR expectedExitTime – adjust field names
+      const expectedExit = pass.validTill || pass.expectedExitTime;
+
+      if (expectedExit) {
+        const exp = new Date(expectedExit);
+        const diffMinutes = (exp - now) / (1000 * 60);
+
+        if (diffMinutes <= 0) {
+          category = 'overstay';
+        } else if (diffMinutes <= 30) {
+          category = 'approachingExit';
+        } else {
+          category = 'onTime';
+        }
+      }
+
+      byBuilding[building][category] += 1;
+
+      byBuilding[building].visitors.push({
+        id: pass._id,
+        name: pass.visitorName || pass.name,
+        purpose: pass.purpose,
+        host: pass.hostName,
+        entryTime: pass.entryTime,
+        expectedExit: expectedExit,
+        category
+      });
+    });
+
+    res.json({
+      generatedAt: now,
+      buildings: Object.values(byBuilding)
+    });
+  } catch (err) {
+    console.error('Error in getLiveVisitors:', err);
+    res.status(500).json({ message: 'Failed to fetch live visitors' });
+  }
+};
+

@@ -27,6 +27,19 @@ const passSchema = new Schema({
     qrImage: {
       type: String, 
     },
+    building: {
+        type: String,
+        required: true,
+    },
+    purpose: {
+        type: String,
+        required: true,
+    },
+    entryTime: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
     validFrom:{
         type: Date,
         required: true

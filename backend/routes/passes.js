@@ -1,5 +1,5 @@
 const express = require('express');
-const {getPasses,getPass,createPass,updatePass,deletePass,getPassQr} = require('../controllers/passController')
+const {getPasses,getPass,createPass,updatePass,deletePass,getPassQr, getLiveVisitors} = require('../controllers/passController')
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -12,5 +12,6 @@ router.post('/', createPass);
 router.put('/:id', updatePass);
 router.delete('/:id', deletePass);
 router.get('/:id/qr', getPassQr);
+router.get('/live', getLiveVisitors);
 
 module.exports = router;

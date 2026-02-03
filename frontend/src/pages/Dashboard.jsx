@@ -1,16 +1,27 @@
 import { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { getSummaryReport } from '../services/api';
+import { getSummaryReport, fetchLiveVisitors } from '../services/api';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Live dashboard state
+  const [liveData, setLiveData] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [liveError, setLiveError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+
   useEffect(() => {
     fetchSummary();
+    fetchLive();
+
+    const interval = setInterval(fetchLive, 30000); // 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const fetchSummary = async () => {
@@ -21,6 +32,20 @@ const Dashboard = () => {
       console.error('Error fetching summary:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLive = async () => {
+    try {
+      setLiveError('');
+      const response = await fetchLiveVisitors();
+      setLiveData(response.data); // { buildings, generatedAt }
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (error) {
+      console.error('Error fetching live visitors:', error);
+      setLiveError('Failed to load live visitors');
+    } finally {
+      setLiveLoading(false);
     }
   };
 
@@ -143,6 +168,37 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
+          {/* Live "Who's Inside Right Now" */}
+          <section className="live-dashboard">
+            <h2>Who&apos;s Inside Right Now</h2>
+            <p className="live-meta">
+              Auto-refresh every 30 seconds
+              {lastUpdated && ` • Last updated at ${lastUpdated}`}
+            </p>
+
+            {liveLoading ? (
+              <div className="loading">Loading live data...</div>
+            ) : liveError ? (
+              <div className="error">{liveError}</div>
+            ) : !liveData || !liveData.buildings?.length ? (
+              <div>No active visitors inside right now.</div>
+            ) : (
+              <div className="live-grid">
+                {liveData.buildings.map((b) => (
+                  <div key={b.building} className="live-card">
+                    <h3>{b.building}</h3>
+                    <p>Total inside: {b.total}</p>
+                    <p className="live-on-time">On time: {b.onTime}</p>
+                    <p className="live-approaching">
+                      Approaching exit: {b.approachingExit}
+                    </p>
+                    <p className="live-overstay">Overstay: {b.overstay}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* Role-specific quick actions */}
           <div className="quick-actions">

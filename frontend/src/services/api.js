@@ -50,6 +50,7 @@ export const createPass = (data) => api.post('/passes', data);
 export const updatePass = (id, data) => api.put(`/passes/${id}`, data);
 export const deletePass = (id) => api.delete(`/passes/${id}`);
 export const getPassQr = (id) => api.get(`/passes/${id}/qr`);
+export const fetchLiveVisitors = () => api.get('/passes/live');
 
 export const getCheckLogs = (params) => api.get('/checklogs', { params });
 export const getCheckLog = (id) => api.get(`/checklogs/${id}`);
